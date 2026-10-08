@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ни свет — Табель</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0;background:#f4f3f0;color:#171717;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 main{max-width:700px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #ddd9d2;border-radius:18px;padding:18px;margin:12px 0}
@@ -24,7 +23,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;
 <div class="muted">Сотрудник</div><select id="emp"></select></div>
 <div class="card"><div class="muted">Статус</div><div id="state" class="big">Не на смене</div><div id="info" class="muted"></div>
 <button id="go" class="btn primary" style="width:100%;margin-top:14px" onclick="shift()">Начать смену</button>
-<p class="note">При отметке запрашивается геолокация телефона. Это демо хранит данные только в браузере.</p></div>
+<p class="note">При отметке запрашивается геолокация телефона. Сейчас это тестовый режим: смены ещё не отправляются в облачную базу.</p></div>
 <div class="card qr"><b>QR точки</b><br><span class="note">Страница автоматически определяет точку из адреса: ?venue=pokrovka, ?venue=drovyanoy или ?venue=lyalin</span></div>
 </section>
 
@@ -41,28 +40,29 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;
 <div class="card"><h3>Сотрудники</h3><div id="people"></div></div></section>
 </main>
 <script>
-const SUPABASE_URL="https://mheepryphkdhlspzcrdt.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY="sb_publishable_hxLdz71IrtDIQ9cSiDBl3w_-NA2cq1Q";;
-const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbyo3mVjn7qTL7NkeOIW68OAMHaoJvDlt3UgyZsSdUzwgxmtIweMF0GCT_SCHRiZIDiaHg/exec";
 let cloudVenues=[];
+
 async function initCloud(){
-  if(SUPABASE_PUBLISHABLE_KEY.startsWith("ВСТАВЬ_")){
-    $("cloud").textContent="Остался один шаг: вставить Publishable key";
-    return;
-  }
-  const {data,error}=await supabaseClient.from("venues").select("slug,name,radius_m,active").eq("active",true).order("name");
-  if(error){
+  try{
+    const response=await fetch(BACKEND_URL+"?action=venues",{cache:"no-store"});
+    if(!response.ok) throw new Error("HTTP "+response.status);
+    const result=await response.json();
+    if(!result.ok) throw new Error(result.message||"Backend error");
+
+    cloudVenues=result.venues||[];
+    cloudVenues.forEach(v=>V[v.slug]=v.name);
+
+    $("cloud").textContent="База подключена";
+    $("cloud").style.color="#286d38";
+    render();
+  }catch(error){
     console.error(error);
     $("cloud").textContent="База не подключена: "+error.message;
     $("cloud").style.color="#ad3029";
-    return;
   }
-  cloudVenues=data||[];
-  cloudVenues.forEach(v=>V[v.slug]=v.name);
-  $("cloud").textContent="База подключена";
-  $("cloud").style.color="#286d38";
-  render();
 }
+
 const V={pokrovka:"Покровка",drovyanoy:"Дровяной",lyalin:"Лялин"};
 const vid=new URLSearchParams(location.search).get("venue");
 const venueId=V[vid]?vid:"pokrovka";
