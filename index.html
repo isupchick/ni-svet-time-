@@ -1,116 +1,776 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ни свет — Табель</title>
-<style>
-body{margin:0;background:#f4f3f0;color:#171717;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:700px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #ddd9d2;border-radius:18px;padding:18px;margin:12px 0}
-h1{margin:0 0 5px}.muted{color:#777}.tabs{display:flex;gap:8px;margin:15px 0}.tabs button,.btn{border:0;border-radius:12px;padding:12px 15px;background:#e8e5df;font-size:15px}.active,.primary{background:#171717!important;color:white}.danger{background:#ad3029!important;color:white}
-input,select{width:100%;box-sizing:border-box;padding:13px;border:1px solid #d5d1c9;border-radius:12px;font-size:16px;margin:5px 0 12px}.big{font-size:34px;font-weight:700;margin:7px 0 14px}.hidden{display:none}.pill{display:inline-block;padding:6px 9px;border-radius:99px;background:#eaf5ec;color:#286d38;font-size:12px}.note{font-size:13px;line-height:1.45;color:#777}
-table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;border-bottom:1px solid #eee;font-size:13px}th{color:#777;font-weight:500}
-.qr{border:2px dashed #bbb;border-radius:16px;padding:25px;text-align:center}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ни свет — Табель</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f2;
+      color: #171717;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+
+    h1 {
+      font-size: 26px;
+      margin: 0 0 5px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin: 0 0 16px;
+    }
+
+    .venue {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .employee {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 13px;
+      padding: 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background: #111;
+      color: #fff;
+      margin-top: 10px;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    .secondary {
+      background: #e9e9e7;
+      color: #111;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 11px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      background: white;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin: 12px 0 6px;
+    }
+
+    .message {
+      padding: 13px;
+      border-radius: 11px;
+      background: #f0f0ee;
+      margin-top: 15px;
+      line-height: 1.4;
+    }
+
+    .success {
+      background: #e7f5e9;
+      color: #23632d;
+    }
+
+    .error {
+      background: #fae8e8;
+      color: #8b2525;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: #555;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .distance {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .loading {
+      color: #777;
+    }
+  </style>
 </head>
+
 <body>
-<main>
-<h1>Ни свет — Табель</h1><div class="muted">рабочее время</div><div id="cloud" class="note" style="margin-top:6px">Подключаем базу…</div>
-<div class="tabs"><button class="active" onclick="tab('work',this)">Смена</button><button onclick="tab('reg',this)">Регистрация</button><button onclick="tab('admin',this)">Админ</button></div>
 
-<section id="work">
-<div class="card"><div class="muted">Заведение</div><div id="venue" style="font-size:22px;font-weight:700;margin:5px 0 15px"></div>
-<div class="muted">Сотрудник</div><select id="emp"></select></div>
-<div class="card"><div class="muted">Статус</div><div id="state" class="big">Не на смене</div><div id="info" class="muted"></div>
-<button id="go" class="btn primary" style="width:100%;margin-top:14px" onclick="shift()">Начать смену</button>
-<p class="note">При отметке запрашивается геолокация телефона. Сейчас это тестовый режим: смены ещё не отправляются в облачную базу.</p></div>
-<div class="card qr"><b>QR точки</b><br><span class="note">Страница автоматически определяет точку из адреса: ?venue=pokrovka, ?venue=drovyanoy или ?venue=lyalin</span></div>
-</section>
+<div class="wrap">
 
-<section id="reg" class="hidden"><div class="card"><h2>Регистрация</h2>
-<label>Имя и фамилия</label><input id="name">
-<label>Телефон</label><input id="phone">
-<label>Должность</label><input id="role" placeholder="Бар / кухня / мойка">
-<label>Заведение</label><select id="regvenue"></select>
-<button class="btn primary" onclick="register()">Отправить заявку</button><p id="msg" class="note"></p></div></section>
+  <div class="card">
+    <h1>Ни свет — Табель</h1>
+    <div class="venue" id="venueName">Загрузка...</div>
 
-<section id="admin" class="hidden"><div class="card"><h2>Админка</h2><div class="pill">Управляющий</div></div>
-<div class="card"><h3>Смены</h3><table><thead><tr><th>Сотрудник</th><th>Точка</th><th>Приход</th><th>Уход</th><th>Часы</th></tr></thead><tbody id="rows"></tbody></table></div>
-<div class="card"><h3>Заявки</h3><div id="requests"></div></div>
-<div class="card"><h3>Сотрудники</h3><div id="people"></div></div></section>
-</main>
+    <div id="loading" class="loading">
+      Подключение...
+    </div>
+
+    <div id="work" class="hidden">
+
+      <div class="employee" id="employeeName"></div>
+      <div class="status" id="shiftStatus">
+        Проверяем смену...
+      </div>
+
+      <button id="shiftButton" onclick="toggleShift()">
+        Начать смену
+      </button>
+
+      <div id="distance" class="distance"></div>
+
+      <div id="workMessage"></div>
+
+      <span class="link" onclick="showRegistration()">
+        Не ваш сотрудник? Зарегистрироваться
+      </span>
+
+    </div>
+
+    <div id="notRegistered" class="hidden">
+
+      <h2>Регистрация</h2>
+
+      <div style="color:#666;margin-bottom:15px">
+        Оставьте заявку. После подтверждения администратора
+        вы получите доступ к табелю.
+      </div>
+
+      <label>Имя</label>
+      <input id="regName" placeholder="Например, Иван">
+
+      <label>Телефон</label>
+      <input id="regPhone" placeholder="+7 900 000-00-00">
+
+      <label>Должность</label>
+      <input id="regPosition" placeholder="Бармен">
+
+      <button onclick="registerEmployee()">
+        Отправить заявку
+      </button>
+
+      <span class="link" onclick="showWork()">
+        Назад
+      </span>
+
+      <div id="registrationMessage"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
 <script>
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbyo3mVjn7qTL7NkeOIW68OAMHaoJvDlt3UgyZsSdUzwgxmtIweMF0GCT_SCHRiZIDiaHg/exec";
-let cloudVenues=[];
 
-async function initCloud(){
-  try{
-    const response=await fetch(BACKEND_URL+"?action=venues",{cache:"no-store"});
-    if(!response.ok) throw new Error("HTTP "+response.status);
-    const result=await response.json();
-    if(!result.ok) throw new Error(result.message||"Backend error");
+const BACKEND_URL =
+  "https://script.google.com/macros/s/AKfycbyo3mVjn7qTL7NkeOIW68OAMHaoJvDlt3UgyZsSdUzwgxmtIweMF0GCT_SCHRiZIDiaHg/exec";
 
-    cloudVenues=result.venues||[];
-    cloudVenues.forEach(v=>V[v.slug]=v.name);
 
-    $("cloud").textContent="База подключена";
-    $("cloud").style.color="#286d38";
-    render();
-  }catch(error){
-    console.error(error);
-    $("cloud").textContent="База не подключена: "+error.message;
-    $("cloud").style.color="#ad3029";
-  }
-}
+const params = new URLSearchParams(
+  window.location.search
+);
 
-const V={pokrovka:"Покровка",drovyanoy:"Дровяной",lyalin:"Лялин"};
-const vid=new URLSearchParams(location.search).get("venue");
-const venueId=V[vid]?vid:"pokrovka";
-let people=JSON.parse(localStorage.ns_people||"null")||[
-{id:"dima",name:"Дима",role:"Бар-менеджер",venues:["pokrovka","drovyanoy","lyalin"],manager:true},
-{id:"masha",name:"Маша",role:"Бар",venues:["pokrovka"],manager:false},
-{id:"sasha",name:"Саша",role:"Кухня",venues:["drovyanoy"],manager:false},
-{id:"zhenya",name:"Женя",role:"Мойка",venues:["pokrovka"],manager:false}];
-let req=JSON.parse(localStorage.ns_req||"[]"), shifts=JSON.parse(localStorage.ns_shifts||"[]"), current=localStorage.ns_current||"dima";
-const $=x=>document.getElementById(x);
-function save(){localStorage.ns_people=JSON.stringify(people);localStorage.ns_req=JSON.stringify(req);localStorage.ns_shifts=JSON.stringify(shifts);localStorage.ns_current=current}
-function time(x){return new Date(x).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}
-function open(){return shifts.find(s=>s.employee===current&&!s.end)}
-function render(){
- $("venue").textContent=V[venueId]; $("emp").innerHTML=people.map(p=>`<option value="${p.id}">${p.name} — ${p.role}</option>`).join("");$("emp").value=current;
- $("regvenue").innerHTML=Object.entries(V).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("");
- let s=open();$("state").textContent=s?"Смена идёт":"Не на смене";$("go").textContent=s?"Закончить смену":"Начать смену";$("go").className="btn "+(s?"danger":"primary");$("info").textContent=s?"Начало: "+time(s.start):"";
- $("rows").innerHTML=shifts.slice().reverse().map(s=>{let p=people.find(x=>x.id===s.employee),h=((new Date(s.end||Date.now())-new Date(s.start))/36e5).toFixed(2);return`<tr><td>${p?.name||"?"}</td><td>${V[s.venue]}</td><td>${time(s.start)}</td><td>${s.end?time(s.end):"—"}</td><td>${h}</td></tr>`}).join("")||"<tr><td colspan=5>Нет смен</td></tr>";
- $("requests").innerHTML=req.map(r=>`<p><b>${r.name}</b> · ${r.role} · ${V[r.venue]}<br>${r.status==="pending"?`<button class="btn" onclick="approve('${r.id}')">Одобрить</button>`:"<span class=pill>Одобрено</span>"}</p>`).join("")||"Нет заявок";
- $("people").innerHTML=people.map(p=>`<p><b>${p.name}</b> — ${p.role}<br><span class=muted>${p.manager?"Видит все точки":p.venues.map(v=>V[v]).join(", ")}</span></p>`).join("");
-}
-$("emp").onchange=e=>{current=e.target.value;save();render()};
-async function geo(){return new Promise(r=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lon:p.coords.longitude}),()=>r(null),{enableHighAccuracy:true,timeout:7000}):r(null))}
-async function shift(){let s=open();let g=await geo();if(!s)shifts.push({id:crypto.randomUUID(),employee:current,venue:venueId,start:new Date().toISOString(),geoStart:g});else{s.end=new Date().toISOString();s.geoEnd=g}save();render()}
-async function register(){
-  let n=$("name").value.trim(),ph=$("phone").value.trim(),r=$("role").value.trim(),rv=$("regvenue").value;
-  if(!n||!ph||!r){$("msg").textContent="Заполни все поля";return}
-  const venueRow=cloudVenues.find(v=>v.slug===rv);
-  if(venueRow){
-    const {error}=await supabaseClient.from("registration_requests").insert({
-      name:n,phone:ph,position:r,venue_id:venueRow.id,status:"pending"
-    });
-    if(error){
-      console.error(error);
-      $("msg").textContent="Не удалось отправить заявку: "+error.message;
+const venueSlug =
+  params.get("venue") || "pokrovka";
+
+
+let venue = null;
+let employee = null;
+let currentShift = false;
+
+
+/* =========================
+   START
+========================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  init
+);
+
+
+async function init() {
+
+  try {
+
+    await loadVenue();
+
+    const token =
+      localStorage.getItem("ns_token");
+
+    if (!token) {
+      showNotRegistered();
       return;
     }
-  }else{
-    req.push({id:crypto.randomUUID(),name:n,phone:ph,role:r,venue:rv,status:"pending"});
-    save();
+
+    await loadEmployee(token);
+
+  } catch (error) {
+
+    showMessage(
+      "workMessage",
+      error.message || "Ошибка подключения",
+      true
+    );
+
+  } finally {
+
+    document
+      .getElementById("loading")
+      .classList.add("hidden");
   }
-  $("msg").textContent="Заявка отправлена управляющему";
-  $("name").value=$("phone").value=$("role").value="";
-  render();
 }
-function approve(id){let r=req.find(x=>x.id===id);people.push({id:crypto.randomUUID(),name:r.name,role:r.role,venues:[r.venue],manager:false});r.status="approved";save();render()}
-function tab(id,b){document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));$(id).classList.remove("hidden");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active")}
-render();
-initCloud();
+
+
+/* =========================
+   VENUE
+========================= */
+
+async function loadVenue() {
+
+  const response =
+    await fetch(
+      BACKEND_URL +
+      "?action=venues"
+    );
+
+  const data =
+    await response.json();
+
+  if (!data.ok) {
+    throw new Error(
+      data.error || "Не удалось загрузить заведения"
+    );
+  }
+
+  venue =
+    data.venues.find(
+      v => v.slug === venueSlug
+    );
+
+  if (!venue) {
+    throw new Error(
+      "Заведение не найдено"
+    );
+  }
+
+  document.getElementById(
+    "venueName"
+  ).textContent =
+    venue.name;
+}
+
+
+/* =========================
+   EMPLOYEE
+========================= */
+
+async function loadEmployee(token) {
+
+  const response =
+    await fetch(
+      BACKEND_URL +
+      "?action=me&token=" +
+      encodeURIComponent(token)
+    );
+
+  const data =
+    await response.json();
+
+  if (!data.ok) {
+
+    localStorage.removeItem(
+      "ns_token"
+    );
+
+    showNotRegistered();
+
+    return;
+  }
+
+  employee =
+    data.employee;
+
+  document.getElementById(
+    "employeeName"
+  ).textContent =
+    employee.name;
+
+  document
+    .getElementById("work")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("notRegistered")
+    .classList.add("hidden");
+
+  document.getElementById(
+    "shiftStatus"
+  ).textContent =
+    "Готов к работе";
+
+  document.getElementById(
+    "shiftButton"
+  ).textContent =
+    "Начать смену";
+}
+
+
+/* =========================
+   SHIFT
+========================= */
+
+async function toggleShift() {
+
+  const token =
+    localStorage.getItem("ns_token");
+
+  if (!token) {
+    showNotRegistered();
+    return;
+  }
+
+  const button =
+    document.getElementById(
+      "shiftButton"
+    );
+
+  button.disabled = true;
+
+  button.textContent =
+    "Определяем местоположение...";
+
+  clearMessage("workMessage");
+
+  try {
+
+    const position =
+      await getLocation();
+
+    const lat =
+      position.coords.latitude;
+
+    const lon =
+      position.coords.longitude;
+
+    document.getElementById(
+      "distance"
+    ).textContent =
+      "Проверяем расстояние...";
+
+    const action =
+      currentShift
+        ? "end_shift"
+        : "start_shift";
+
+    const url =
+      BACKEND_URL +
+      "?action=" +
+      action +
+      "&token=" +
+      encodeURIComponent(token) +
+      "&venue=" +
+      encodeURIComponent(venueSlug) +
+      "&lat=" +
+      encodeURIComponent(lat) +
+      "&lon=" +
+      encodeURIComponent(lon);
+
+    const response =
+      await fetch(url);
+
+    const data =
+      await response.json();
+
+    if (!data.ok) {
+
+      if (data.distance_m !== undefined) {
+
+        document.getElementById(
+          "distance"
+        ).textContent =
+          "Расстояние: " +
+          data.distance_m +
+          " м. Допустимо: " +
+          data.radius_m +
+          " м.";
+
+      }
+
+      throw new Error(
+        data.error || "Не удалось выполнить действие"
+      );
+    }
+
+    if (data.distance_m !== undefined) {
+
+      document.getElementById(
+        "distance"
+      ).textContent =
+        "Расстояние: " +
+        data.distance_m +
+        " м";
+    }
+
+    if (action === "start_shift") {
+
+      currentShift = true;
+
+      document.getElementById(
+        "shiftStatus"
+      ).textContent =
+        "Смена идёт";
+
+      button.textContent =
+        "Закончить смену";
+
+      showMessage(
+        "workMessage",
+        "Смена начата",
+        false
+      );
+
+    } else {
+
+      currentShift = false;
+
+      document.getElementById(
+        "shiftStatus"
+      ).textContent =
+        "Смена завершена";
+
+      button.textContent =
+        "Начать смену";
+
+      showMessage(
+        "workMessage",
+        "Смена завершена",
+        false
+      );
+    }
+
+  } catch (error) {
+
+    showMessage(
+      "workMessage",
+      error.message ||
+      "Не удалось получить геолокацию",
+      true
+    );
+
+    button.textContent =
+      currentShift
+        ? "Закончить смену"
+        : "Начать смену";
+
+  } finally {
+
+    button.disabled = false;
+  }
+}
+
+
+/* =========================
+   GEO
+========================= */
+
+function getLocation() {
+
+  return new Promise(
+    function(resolve, reject) {
+
+      if (!navigator.geolocation) {
+
+        reject(
+          new Error(
+            "Браузер не поддерживает геолокацию"
+          )
+        );
+
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        function(error) {
+
+          let message =
+            "Не удалось получить геолокацию";
+
+          if (error.code === 1) {
+            message =
+              "Разреши доступ к геолокации в браузере";
+          }
+
+          if (error.code === 2) {
+            message =
+              "Местоположение сейчас недоступно";
+          }
+
+          if (error.code === 3) {
+            message =
+              "Не удалось определить местоположение вовремя";
+          }
+
+          reject(
+            new Error(message)
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
+
+    }
+  );
+}
+
+
+/* =========================
+   REGISTRATION
+========================= */
+
+function showRegistration() {
+
+  document
+    .getElementById("work")
+    .classList.add("hidden");
+
+  document
+    .getElementById("notRegistered")
+    .classList.remove("hidden");
+
+  clearMessage(
+    "registrationMessage"
+  );
+}
+
+
+function showWork() {
+
+  document
+    .getElementById("notRegistered")
+    .classList.add("hidden");
+
+  if (employee) {
+
+    document
+      .getElementById("work")
+      .classList.remove("hidden");
+
+  } else {
+
+    showNotRegistered();
+  }
+}
+
+
+function showNotRegistered() {
+
+  document
+    .getElementById("work")
+    .classList.add("hidden");
+
+  document
+    .getElementById("notRegistered")
+    .classList.remove("hidden");
+}
+
+
+async function registerEmployee() {
+
+  const name =
+    document
+      .getElementById("regName")
+      .value
+      .trim();
+
+  const phone =
+    document
+      .getElementById("regPhone")
+      .value
+      .trim();
+
+  const position =
+    document
+      .getElementById("regPosition")
+      .value
+      .trim();
+
+  if (!name || !phone || !position) {
+
+    showMessage(
+      "registrationMessage",
+      "Заполни все поля",
+      true
+    );
+
+    return;
+  }
+
+  const button =
+    document.querySelector(
+      "#notRegistered button"
+    );
+
+  button.disabled = true;
+
+  button.textContent =
+    "Отправляем...";
+
+  try {
+
+    const url =
+      BACKEND_URL +
+      "?action=register" +
+      "&name=" +
+      encodeURIComponent(name) +
+      "&phone=" +
+      encodeURIComponent(phone) +
+      "&position=" +
+      encodeURIComponent(position) +
+      "&venue=" +
+      encodeURIComponent(venueSlug);
+
+    const response =
+      await fetch(url);
+
+    const data =
+      await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+        "Не удалось отправить заявку"
+      );
+    }
+
+    showMessage(
+      "registrationMessage",
+      "Заявка отправлена. Жди подтверждения администратора.",
+      false
+    );
+
+    document.getElementById(
+      "regName"
+    ).value = "";
+
+    document.getElementById(
+      "regPhone"
+    ).value = "";
+
+    document.getElementById(
+      "regPosition"
+    ).value = "";
+
+  } catch (error) {
+
+    showMessage(
+      "registrationMessage",
+      error.message ||
+      "Ошибка отправки заявки",
+      true
+    );
+
+  } finally {
+
+    button.disabled = false;
+
+    button.textContent =
+      "Отправить заявку";
+  }
+}
+
+
+/* =========================
+   UI
+========================= */
+
+function showMessage(
+  elementId,
+  text,
+  isError
+) {
+
+  const element =
+    document.getElementById(
+      elementId
+    );
+
+  element.textContent = text;
+
+  element.className =
+    "message " +
+    (isError
+      ? "error"
+      : "success");
+}
+
+
+function clearMessage(elementId) {
+
+  const element =
+    document.getElementById(
+      elementId
+    );
+
+  element.textContent = "";
+
+  element.className =
+    "";
+}
+
 </script>
-</body></html>
+
+</body>
+</html>
