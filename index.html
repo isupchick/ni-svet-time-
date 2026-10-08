@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ни свет — Табель</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0;background:#f4f3f0;color:#171717;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 main{max-width:700px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #ddd9d2;border-radius:18px;padding:18px;margin:12px 0}
@@ -15,7 +16,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;
 </head>
 <body>
 <main>
-<h1>Ни свет — Табель</h1><div class="muted">демо рабочего времени</div>
+<h1>Ни свет — Табель</h1><div class="muted">рабочее время</div><div id="cloud" class="note" style="margin-top:6px">Подключаем базу…</div>
 <div class="tabs"><button class="active" onclick="tab('work',this)">Смена</button><button onclick="tab('reg',this)">Регистрация</button><button onclick="tab('admin',this)">Админ</button></div>
 
 <section id="work">
@@ -40,6 +41,28 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;
 <div class="card"><h3>Сотрудники</h3><div id="people"></div></div></section>
 </main>
 <script>
+const SUPABASE_URL="https://mheepryphkdhlspzcrdt.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="ВСТАВЬ_СЮДА_ТВОЙ_PUBLISHABLE_KEY";
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let cloudVenues=[];
+async function initCloud(){
+  if(SUPABASE_PUBLISHABLE_KEY.startsWith("ВСТАВЬ_")){
+    $("cloud").textContent="Остался один шаг: вставить Publishable key";
+    return;
+  }
+  const {data,error}=await supabaseClient.from("venues").select("slug,name,radius_m,active").eq("active",true).order("name");
+  if(error){
+    console.error(error);
+    $("cloud").textContent="База не подключена: "+error.message;
+    $("cloud").style.color="#ad3029";
+    return;
+  }
+  cloudVenues=data||[];
+  cloudVenues.forEach(v=>V[v.slug]=v.name);
+  $("cloud").textContent="База подключена";
+  $("cloud").style.color="#286d38";
+  render();
+}
 const V={pokrovka:"Покровка",drovyanoy:"Дровяной",lyalin:"Лялин"};
 const vid=new URLSearchParams(location.search).get("venue");
 const venueId=V[vid]?vid:"pokrovka";
@@ -64,9 +87,30 @@ function render(){
 $("emp").onchange=e=>{current=e.target.value;save();render()};
 async function geo(){return new Promise(r=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lon:p.coords.longitude}),()=>r(null),{enableHighAccuracy:true,timeout:7000}):r(null))}
 async function shift(){let s=open();let g=await geo();if(!s)shifts.push({id:crypto.randomUUID(),employee:current,venue:venueId,start:new Date().toISOString(),geoStart:g});else{s.end=new Date().toISOString();s.geoEnd=g}save();render()}
-function register(){let n=$("name").value.trim(),ph=$("phone").value.trim(),r=$("role").value.trim();if(!n||!ph||!r){$("msg").textContent="Заполни все поля";return}req.push({id:crypto.randomUUID(),name:n,phone:ph,role:r,venue:$("regvenue").value,status:"pending"});save();$("msg").textContent="Заявка отправлена управляющему";$("name").value=$("phone").value=$("role").value="";render()}
+async function register(){
+  let n=$("name").value.trim(),ph=$("phone").value.trim(),r=$("role").value.trim(),rv=$("regvenue").value;
+  if(!n||!ph||!r){$("msg").textContent="Заполни все поля";return}
+  const venueRow=cloudVenues.find(v=>v.slug===rv);
+  if(venueRow){
+    const {error}=await supabaseClient.from("registration_requests").insert({
+      name:n,phone:ph,position:r,venue_id:venueRow.id,status:"pending"
+    });
+    if(error){
+      console.error(error);
+      $("msg").textContent="Не удалось отправить заявку: "+error.message;
+      return;
+    }
+  }else{
+    req.push({id:crypto.randomUUID(),name:n,phone:ph,role:r,venue:rv,status:"pending"});
+    save();
+  }
+  $("msg").textContent="Заявка отправлена управляющему";
+  $("name").value=$("phone").value=$("role").value="";
+  render();
+}
 function approve(id){let r=req.find(x=>x.id===id);people.push({id:crypto.randomUUID(),name:r.name,role:r.role,venues:[r.venue],manager:false});r.status="approved";save();render()}
 function tab(id,b){document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));$(id).classList.remove("hidden");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active")}
 render();
+initCloud();
 </script>
 </body></html>
