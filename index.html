@@ -982,8 +982,9 @@ async function startShift(){
 
   button.disabled = false;
 
-  updateShiftUI();
-
+  if (shiftActive) {
+    updateShiftUI();
+  }
 }
 
 
