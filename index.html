@@ -405,70 +405,45 @@ async function loadVenue(){
    СОТРУДНИК
 ===================================================== */
 
-async function loadEmployee(){
+async function loadEmployee() {
+  const token = localStorage.getItem("ns_token");
 
-  const token =
-    localStorage.getItem("ns_token");
-
-  /*
-    Если токена нет —
-    показываем регистрацию
-    и возможность ввести код.
-  */
-
- if(!token){
-
-  showRegistration();
-  showTokenSection();
-
-  return;
-
-}
+  if (!token) {
+    showRegistration();
+    showTokenSection();
+    return;
   }
 
+  try {
+    const response = await fetch(
+      BACKEND_URL + "?action=me&token=" + encodeURIComponent(token)
+    );
 
-  try{
+    const text = await response.text();
+    let data;
 
-    const response =
-      await fetch(
-        BACKEND_URL +
-        "?action=me&token=" +
-        encodeURIComponent(token)
-      );
-
-    const data =
-      await response.json();
-
-    if(!data.ok){
-
-      localStorage.removeItem(
-        "ns_token"
-      );
-
-      showRegistration();
-
-      showTokenSection();
-
-      return;
-
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      throw new Error("Сервер вернул не JSON. Проверь адрес backend.");
     }
 
-    employee =
-      data.employee;
+    if (!data.ok) {
+      localStorage.removeItem("ns_token");
+      showRegistration();
+      showTokenSection();
+      return;
+    }
 
+    employee = data.employee;
     showWork();
 
-  }catch(error){
-
+  } catch (error) {
     showTokenSection();
-
     showRegistration();
-
+    showError(error.message || "Не удалось подключиться к базе");
   }
-
-}
-
-
+} 
 /* =====================================================
    ПОКАЗ РАБОЧЕЙ ЧАСТИ
 ===================================================== */
