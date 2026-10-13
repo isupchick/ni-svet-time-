@@ -796,6 +796,10 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) sync
 async function toggleShift(){
   await syncShiftState();
   if (document.getElementById("shiftButton").disabled) return;
+  if (activeShift && activeShift.venue_slug && activeShift.venue_slug !== venueSlug) {
+    document.getElementById("workStatus").textContent = "Смена открыта в другом заведении. Открой его страницу для завершения.";
+    return;
+  }
 
   if(shiftActive){
 
@@ -973,6 +977,7 @@ async function startShift(){
     }
 
 
+    activeShift = data.shift || null;
     shiftActive = true;
 
     localStorage.setItem(
@@ -1100,6 +1105,7 @@ async function endShift(){
     }
 
 
+    activeShift = null;
     shiftActive = false;
 
     localStorage.removeItem(
