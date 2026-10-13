@@ -982,9 +982,9 @@ async function startShift(){
 
   button.disabled = false;
 
-  if (shiftActive) {
-    updateShiftUI();
-  }
+  button.textContent = shiftActive
+    ? "Закончить смену"
+    : "Начать смену";
 }
 
 
@@ -1106,7 +1106,9 @@ async function endShift(){
 
   button.disabled = false;
 
-  updateShiftUI();
+  button.textContent = shiftActive
+    ? "Закончить смену"
+    : "Начать смену";
 
 }
 
