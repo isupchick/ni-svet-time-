@@ -316,10 +316,10 @@ let employee = null;
   После обновления страницы оно сохраняется.
 */
 
-let shiftActive =
-localStorage.getItem(
-  "ns_shift_active_" + venueSlug
-) === "1";
+let shiftActive = false;
+let activeShift = null;
+let shiftBusy = false;
+let syncBusy = false;
 
 
 /* =====================================================
@@ -436,6 +436,9 @@ async function loadEmployee() {
     }
 
     employee = data.employee;
+    activeShift = data.active_shift || null;
+    shiftActive = Boolean(activeShift);
+    localStorage.removeItem("ns_shift_active_" + venueSlug);
     showWork();
 
   } catch (error) {
@@ -740,7 +743,7 @@ function updateShiftUI(){
   if(shiftActive){
 
     status.textContent =
-      "Ты сейчас на смене.";
+      "Ты сейчас на смене." + (activeShift && activeShift.venue_slug !== venueSlug ? " Заведение: " + activeShift.venue_slug + ". Открой страницу этого заведения для завершения." : "");
 
     status.className =
       "status ok";
@@ -768,7 +771,31 @@ function updateShiftUI(){
    НАЧАТЬ / ЗАКОНЧИТЬ
 ===================================================== */
 
-function toggleShift(){
+async function syncShiftState(){
+  if (shiftBusy || syncBusy || !employee) return;
+  syncBusy = true;
+  const button = document.getElementById("shiftButton");
+  button.disabled = true;
+  try {
+    const token = localStorage.getItem("ns_token");
+    const response = await fetch(BACKEND_URL + "?action=me&token=" + encodeURIComponent(token), {cache:"no-store"});
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.error || "Не удалось проверить смену");
+    activeShift = data.active_shift || null;
+    shiftActive = Boolean(activeShift);
+    updateShiftUI();
+    button.disabled = false;
+  } catch (error) {
+    document.getElementById("workStatus").textContent = "Не удалось сверить смену с базой. Обнови страницу. " + error.message;
+    document.getElementById("workStatus").className = "status error";
+  } finally { syncBusy = false; }
+}
+window.addEventListener("focus", syncShiftState);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) syncShiftState(); });
+
+async function toggleShift(){
+  await syncShiftState();
+  if (document.getElementById("shiftButton").disabled) return;
 
   if(shiftActive){
 
@@ -880,6 +907,7 @@ async function startShift(){
     );
 
 
+  shiftBusy = true;
   button.disabled = true;
 
   button.textContent =
@@ -982,6 +1010,7 @@ async function startShift(){
 
   button.disabled = false;
 
+  shiftBusy = false;
   button.textContent = shiftActive
     ? "Закончить смену"
     : "Начать смену";
@@ -1005,6 +1034,7 @@ async function endShift(){
     );
 
 
+  shiftBusy = true;
   button.disabled = true;
 
   button.textContent =
@@ -1106,6 +1136,7 @@ async function endShift(){
 
   button.disabled = false;
 
+  shiftBusy = false;
   button.textContent = shiftActive
     ? "Закончить смену"
     : "Начать смену";
