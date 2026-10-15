@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Ни свет — Админка 2.0</title>
+<style>
+  :root{
+    --ink:#171717;
+    --muted:#74746f;
+    --paper:rgba(255,255,255,.96);
+    --line:#e9e6df;
+    --soft:#f2f1ed;
+    --green:#14652b;
+    --green-bg:#e5f5e8;
+    --red:#9b2020;
+    --red-bg:#fae7e7;
+    --amber:#7a4a00;
+    --amber-bg:#fff0cf;
+    --shadow:0 4px 24px rgba(40,31,18,.08);
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Arial,sans-serif;
+    background:#f7efdf url('assets/kittens-background.webp') center top / 1024px auto repeat-y;
+    background-attachment:fixed;
+    color:var(--ink);
+  }
+
+  button,input,select{font:inherit}
+
+  .shell{
+    width:min(1180px,100%);
+    margin:0 auto;
+    padding:24px 16px 56px;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    margin-bottom:18px;
+  }
+
+  h1{font-size:32px;margin:0}
+  h2{font-size:21px;margin:0}
+  h3{font-size:17px;margin:0}
+  .subtitle{color:var(--muted);margin-top:5px}
+  .hidden{display:none!important}
+
+  .card{
+    background:var(--paper);
+    border:1px solid rgba(255,255,255,.8);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:var(--shadow);
+  }
+
+  .login-card{max-width:460px;margin:52px auto 0}
+  .login-card .cat{font-size:42px;margin-bottom:10px}
+
+  label{display:block;color:var(--muted);font-size:13px;margin-bottom:7px}
+
+  input,select{
+    width:100%;
+    padding:12px 13px;
+    border:1px solid #d8d6d0;
+    border-radius:11px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+  }
+
+  input:focus,select:focus{border-color:#222;box-shadow:0 0 0 3px rgba(0,0,0,.07)}
+
+  button{
+    border:0;
+    border-radius:11px;
+    padding:12px 15px;
+    background:#111;
+    color:#fff;
+    cursor:pointer;
+    font-weight:700;
+  }
+
+  button:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.48;cursor:default;filter:none}
+  button.secondary{background:#e9e9e7;color:#111}
+  button.danger{background:#a72d2d}
+  button.success{background:#176b33}
+  button.ghost{background:transparent;color:#333;border:1px solid #d7d4cc}
+  button.small{padding:8px 11px;font-size:13px}
+  .wide{width:100%}
+
+  .status{
+    margin-top:14px;
+    padding:12px 13px;
+    border-radius:11px;
+    background:var(--soft);
+    line-height:1.4;
+  }
+  .status.ok{background:var(--green-bg);color:var(--green)}
+  .status.error{background:var(--red-bg);color:var(--red)}
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+  }
+
+  .toolbar .spacer{flex:1}
+  .toolbar select{width:auto;min-width:170px}
+
+  .metrics{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+    margin:14px 0;
+  }
+
+  .metric{padding:16px}
+  .metric .number{font-size:30px;font-weight:800;line-height:1}
+  .metric .caption{font-size:13px;color:var(--muted);margin-top:7px}
+
+  .tabs{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:4px;
+    margin:2px 0 14px;
+    background:rgba(255,255,255,.8);
+    border-radius:14px;
+  }
+
+  .tab{
+    flex:1 0 auto;
+    background:transparent;
+    color:#555;
+    padding:11px 15px;
+  }
+  .tab.active{background:#111;color:#fff}
+
+  .panel{display:none}
+  .panel.active{display:block}
+
+  .panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:15px;
+  }
+
+  .list{display:grid;gap:11px}
+  .item{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:15px;
+    background:#fff;
+  }
+
+  .item-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .name{font-size:18px;font-weight:800}
+  .meta{color:var(--muted);font-size:13px;line-height:1.55;margin-top:4px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    background:var(--soft);
+    color:#555;
+    white-space:nowrap;
+  }
+  .badge.pending{background:var(--amber-bg);color:var(--amber)}
+  .badge.active,.badge.approved{background:var(--green-bg);color:var(--green)}
+  .badge.disabled,.badge.rejected{background:var(--red-bg);color:var(--red)}
+
+  .venue-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .check{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    background:var(--soft);
+    border-radius:10px;
+    padding:8px 10px;
+    color:#333;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .check input{width:auto;margin:0}
+
+  .filters{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:14px}
+
+  .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}
+  table{border-collapse:collapse;width:100%;min-width:720px;background:#fff}
+  th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--muted);font-weight:700;background:#faf9f6;position:sticky;top:0}
+  tr:last-child td{border-bottom:0}
+  .hours{font-weight:800;font-variant-numeric:tabular-nums}
+
+  .empty{padding:36px 12px;text-align:center;color:var(--muted)}
+  .hint{font-size:13px;color:var(--muted);line-height:1.5}
+  .dot{width:8px;height:8px;border-radius:50%;background:#2f9f50;display:inline-block}
+
+  .modal{
+    position:fixed;
+    inset:0;
+    z-index:20;
+    display:grid;
+    place-items:center;
+    background:rgba(20,18,15,.48);
+    padding:18px;
+  }
+  .modal-card{width:min(520px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.25)}
+  .token-box{word-break:break-all;background:#f5f4f0;padding:13px;border-radius:11px;font-family:monospace;margin:12px 0}
+  .modal-actions{display:flex;gap:9px;justify-content:flex-end}
+
+  .toast{
+    position:fixed;
+    right:18px;
+    bottom:18px;
+    z-index:30;
+    max-width:min(420px,calc(100% - 36px));
+    padding:13px 15px;
+    border-radius:12px;
+    color:#fff;
+    background:#111;
+    box-shadow:0 10px 40px rgba(0,0,0,.24);
+  }
+  .toast.error{background:#9b2020}
+
+  @media(max-width:760px){
+    .topbar{align-items:stretch;flex-direction:column}
+    .metrics{grid-template-columns:1fr 1fr}
+    .filters{grid-template-columns:1fr 1fr}
+    .filters button{grid-column:1/-1}
+    .item-top{flex-direction:column}
+    .toolbar .spacer{display:none}
+    .toolbar>*{flex:1 1 150px}
+  }
+
+  @media(max-width:430px){
+    h1{font-size:28px}
+    .shell{padding:18px 12px 44px}
+    .card{padding:16px}
+    .metrics{gap:8px}
+    .metric .number{font-size:25px}
+  }
+</style>
+</head>
+<body>
+<main class="shell">
+  <section id="loginView" class="card login-card">
+    <div class="cat">🐾</div>
+    <h1>Ни свет — Админка 2.0</h1>
+    <p class="subtitle">Заявки, смены и табель — всё нужное на одной странице</p>
+    <div style="margin-top:22px">
+      <label for="adminPassword">Общий пароль</label>
+      <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Введите пароль">
+    </div>
+    <button id="loginButton" class="wide" style="margin-top:12px">Войти</button>
+    <div id="loginStatus" class="status hidden"></div>
+    <p class="hint" style="margin-bottom:0">Общий пароль отправляется только в защищённый Apps Script и не сохраняется в коде сайта.</p>
+  </section>
+
+  <section id="appView" class="hidden">
+    <header class="topbar">
+      <div>
+        <h1>Ни свет — Админка 2.0</h1>
+        <div class="subtitle"><span class="dot"></span> общий доступ · всё важное под рукой</div>
+      </div>
+      <div class="toolbar">
+        <select id="venueFilter" aria-label="Заведение">
+          <option value="">Все заведения</option>
+        </select>
+        <button id="refreshButton" class="secondary">Обновить</button>
+        <button id="logoutButton" class="ghost">Выйти</button>
+      </div>
+    </header>
+
+    <div class="metrics">
+      <div class="card metric"><div id="pendingCount" class="number">—</div><div class="caption">ожидают решения</div></div>
+      <div class="card metric"><div id="employeeCount" class="number">—</div><div class="caption">сотрудников с доступом</div></div>
+      <div class="card metric"><div id="activeCount" class="number">—</div><div class="caption">сейчас на смене</div></div>
+      <div class="card metric"><div id="hoursToday" class="number">—</div><div class="caption">часов сегодня</div></div>
+    </div>
+
+    <nav class="tabs" aria-label="Разделы админки">
+      <button class="tab active" data-panel="requestsPanel">Заявки</button>
+      <button class="tab" data-panel="activePanel">Активные смены</button>
+      <button class="tab" data-panel="timecardPanel">Табель</button>
+    </nav>
+
+    <section id="requestsPanel" class="panel active card">
+      <div class="panel-head"><div><h2>Новые заявки</h2><div class="hint">При одобрении выберите заведения и передайте сотруднику личный код.</div></div></div>
+      <div id="requestsList" class="list"></div>
+    </section>
+
+    <section id="activePanel" class="panel card">
+      <div class="panel-head"><div><h2>Сейчас на смене</h2><div class="hint">Забытую смену можно закрыть текущим временем.</div></div></div>
+      <div id="activeList" class="list"></div>
+    </section>
+
+    <section id="timecardPanel" class="panel card">
+      <div class="panel-head"><div><h2>Табель</h2><div class="hint">Завершённые смены за выбранный период.</div></div></div>
+      <div class="filters">
+        <div><label for="dateFrom">С даты</label><input id="dateFrom" type="date"></div>
+        <div><label for="dateTo">По дату</label><input id="dateTo" type="date"></div>
+        <div><label for="employeeFilter">Сотрудник</label><select id="employeeFilter"><option value="">Все сотрудники</option></select></div>
+        <button id="applyTimecard" style="align-self:end">Показать</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Сотрудник</th><th>Заведение</th><th>Начало</th><th>Окончание</th><th>Часы</th></tr></thead>
+          <tbody id="timecardRows"></tbody>
+        </table>
+      </div>
+      <div id="timecardTotal" class="status"></div>
+    </section>
+  </section>
+</main>
+
+<div id="tokenModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
+  <div class="modal-card">
+    <h2 id="tokenTitle">Доступ сотрудника готов</h2>
+    <p id="tokenMessage" class="hint"></p>
+    <div id="issuedToken" class="token-box"></div>
+    <div class="modal-actions">
+      <button id="copyToken" class="secondary">Скопировать код</button>
+      <button id="closeToken">Готово</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbw0IHw-aD0uqiJBkffB3gB4gHcLiXedMIixjeE_--4pcxUw7_ByGFXiWhKFVMIN0ftf/exec";
+const SESSION_KEY = "ns_manager_session";
+const VENUE_NAMES = {pokrovka:"Покровка",drovyanoy:"Дровяной",lyalin:"Лялин"};
+
+const state = {
+  token: sessionStorage.getItem(SESSION_KEY) || "",
+  venues: [],
+  requests: [],
+  employees: [],
+  activeShifts: [],
+  shifts: [],
+  selectedVenue: ""
+};
+
+const $ = id => document.getElementById(id);
+
+document.addEventListener("DOMContentLoaded", init);
+
+function init(){
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  $("dateFrom").value = toDateInput(monthStart);
+  $("dateTo").value = toDateInput(today);
+
+  $("loginButton").addEventListener("click", login);
+  $("adminPassword").addEventListener("keydown", event => { if(event.key === "Enter") login(); });
+  $("logoutButton").addEventListener("click", logout);
+  $("refreshButton").addEventListener("click", loadSnapshot);
+  $("venueFilter").addEventListener("change", event => {
+    state.selectedVenue = event.target.value;
+    renderAll();
+  });
+  $("applyTimecard").addEventListener("click", loadTimecard);
+  $("copyToken").addEventListener("click", copyIssuedToken);
+  $("closeToken").addEventListener("click", closeTokenModal);
+  $("tokenModal").addEventListener("click", event => { if(event.target === $("tokenModal")) closeTokenModal(); });
+  document.querySelectorAll(".tab").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
+
+  if(state.token) loadSnapshot();
+}
+
+async function api(action, payload = {}, options = {}){
+  const body = {action, ...payload};
+  if(options.auth !== false && state.token) body.manager_token = state.token;
+
+  const response = await fetch(BACKEND_URL, {
+    method:"POST",
+    redirect:"follow",
+    cache:"no-store",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(body)
+  });
+
+  // Apps Script may answer with a redirect before the final JSON response.
+  // fetch follows it; the redirect itself is not treated as a failure.
+  const text = await response.text();
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch(error){
+    throw new Error("Сервер вернул неожиданный ответ. Проверь публикацию Apps Script.");
+  }
+
+  if(!data.ok){
+    const err = new Error(data.error || "Операция не выполнена");
+    err.code = data.code || "";
+    throw err;
+  }
+  return data;
+}
+
+async function login(){
+  const password = $("adminPassword").value;
+  if(!password){
+    setLoginStatus("Введите пароль администратора.", true);
+    return;
+  }
+
+  setBusy($("loginButton"), true, "Проверяем...");
+  setLoginStatus("Подключаемся к базе...", false);
+  try{
+    const data = await api("manager_login", {password}, {auth:false});
+    state.token = data.manager_token;
+    sessionStorage.setItem(SESSION_KEY, state.token);
+    $("adminPassword").value = "";
+    await loadSnapshot();
+  }catch(error){
+    setLoginStatus(error.message, true);
+  }finally{
+    setBusy($("loginButton"), false, "Войти");
+  }
+}
+
+async function loadSnapshot(){
+  setBusy($("refreshButton"), true, "Обновляем...");
+  try{
+    const data = await api("admin_snapshot");
+    state.venues = data.venues || [];
+    state.requests = data.requests || [];
+    state.employees = data.employees || [];
+    state.activeShifts = data.active_shifts || [];
+    state.shifts = data.shifts || [];
+    showApp();
+    populateFilters();
+    renderAll();
+  }catch(error){
+    if(error.code === "UNAUTHORIZED"){
+      logout("Сессия закончилась. Войдите ещё раз.");
+    }else{
+      setLoginStatus(error.message, true);
+      toast(error.message, true);
+    }
+  }finally{
+    setBusy($("refreshButton"), false, "Обновить");
+  }
+}
+
+function showApp(){
+  $("loginView").classList.add("hidden");
+  $("appView").classList.remove("hidden");
+}
+
+function logout(message){
+  state.token = "";
+  sessionStorage.removeItem(SESSION_KEY);
+  $("appView").classList.add("hidden");
+  $("loginView").classList.remove("hidden");
+  if(message) setLoginStatus(message, true); else $("loginStatus").classList.add("hidden");
+}
+
+function showPanel(id){
+  document.querySelectorAll(".panel").forEach(panel => panel.classList.toggle("active", panel.id === id));
+  document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.panel === id));
+  if(id === "timecardPanel") loadTimecard();
+}
+
+function populateFilters(){
+  const venueValue = $("venueFilter").value;
+  $("venueFilter").replaceChildren(option("", "Все заведения"));
+  state.venues.forEach(venue => $("venueFilter").append(option(venue.slug, venue.name)));
+  $("venueFilter").value = venueValue;
+
+  const employeeValue = $("employeeFilter").value;
+  $("employeeFilter").replaceChildren(option("", "Все сотрудники"));
+  state.employees.slice().sort(byName).forEach(employee => $("employeeFilter").append(option(employee.id, employee.name)));
+  $("employeeFilter").value = employeeValue;
+}
+
+function renderAll(){
+  const venue = state.selectedVenue;
+  const pending = state.requests.filter(item => item.status === "pending" && (!venue || item.venue_slug === venue));
+  const employees = state.employees.filter(item => !venue || (item.venue_slugs || []).includes(venue));
+  const active = state.activeShifts.filter(item => !venue || item.venue_slug === venue);
+
+  $("pendingCount").textContent = pending.length;
+  $("employeeCount").textContent = employees.filter(item => item.status === "approved").length;
+  $("activeCount").textContent = active.length;
+  $("hoursToday").textContent = formatHours(calculateTodayHours(venue));
+
+  renderRequests(pending);
+  renderActive(active);
+  renderTimecard(filteredShifts());
+}
+
+function renderRequests(items){
+  const root = $("requestsList");
+  root.replaceChildren();
+  if(!items.length){
+    root.append(empty("Новых заявок нет. Котик одобряет тишину 🐾"));
+    return;
+  }
+
+  items.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach(request => {
+    const item = div("item");
+    const top = div("item-top");
+    const info = document.createElement("div");
+    info.append(textEl("div", "name", request.name));
+    info.append(textEl("div", "meta", `${request.position || "Без должности"} · ${formatPhone(request.phone)} · ${formatDateTime(request.created_at)}`));
+    top.append(info, badge(venueName(request.venue_slug), "pending"));
+
+    const picker = div("venue-picker");
+    state.venues.forEach(venue => {
+      const label = document.createElement("label");
+      label.className = "check";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = `venue-${request.id}`;
+      input.value = venue.slug;
+      input.checked = venue.slug === request.venue_slug;
+      label.append(input, document.createTextNode(venue.name));
+      picker.append(label);
+    });
+
+    const actions = div("actions");
+    const approve = button("Одобрить", "success small", () => approveRequest(request, item));
+    const reject = button("Отклонить", "danger small", () => rejectRequest(request, item));
+    actions.append(approve, reject);
+    item.append(top, picker, actions);
+    root.append(item);
+  });
+}
+
+async function approveRequest(request, card){
+  const venueSlugs = [...card.querySelectorAll(`input[name="venue-${cssEscape(request.id)}"]:checked`)].map(input => input.value);
+  if(!venueSlugs.length){toast("Выберите хотя бы одно заведение.", true);return;}
+  const controls = card.querySelectorAll("button,input");
+  setDisabled(controls, true);
+  try{
+    const data = await api("admin_approve_registration", {request_id:request.id, venue_slugs:venueSlugs});
+    showTokenModal(data.employee, data.access_token, "Скопируйте код и передайте сотруднику лично. После закрытия он не будет показан снова.");
+    await loadSnapshot();
+  }catch(error){
+    toast(error.message, true);
+  }finally{setDisabled(controls, false);}
+}
+
+async function rejectRequest(request, card){
+  if(!confirm(`Отклонить заявку «${request.name}»?`)) return;
+  const controls = card.querySelectorAll("button,input");
+  setDisabled(controls, true);
+  try{
+    await api("admin_reject_registration", {request_id:request.id});
+    toast("Заявка отклонена.");
+    await loadSnapshot();
+  }catch(error){toast(error.message, true);}
+  finally{setDisabled(controls, false);}
+}
+
+function renderEmployees(items){
+  const root = $("employeesList");
+  root.replaceChildren();
+  if(!items.length){root.append(empty("Сотрудников в этом заведении пока нет."));return;}
+
+  items.slice().sort(byName).forEach(employee => {
+    const item = div("item");
+    const top = div("item-top");
+    const info = document.createElement("div");
+    info.append(textEl("div", "name", employee.name));
+    info.append(textEl("div", "meta", `${employee.position || "Без должности"} · ${formatPhone(employee.phone)}\n${(employee.venue_slugs || []).map(venueName).join(", ") || "Нет заведений"}`));
+    top.append(info, badge(employee.status === "approved" ? "Доступ включён" : "Доступ отключён", employee.status));
+
+    const picker = div("venue-picker");
+    state.venues.forEach(venue => {
+      const label = document.createElement("label");
+      label.className = "check";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = `employee-venue-${employee.id}`;
+      input.value = venue.slug;
+      input.checked = (employee.venue_slugs || []).includes(venue.slug);
+      label.append(input, document.createTextNode(venue.name));
+      picker.append(label);
+    });
+
+    const actions = div("actions");
+    actions.append(button("Сохранить заведения", "secondary small", () => saveEmployeeVenues(employee, item)));
+    if(employee.status === "approved"){
+      actions.append(button("Новый код", "secondary small", () => rotateEmployeeToken(employee, item)));
+      actions.append(button("Отключить", "danger small", () => setEmployeeStatus(employee, "disabled", item)));
+    }else{
+      actions.append(button("Включить доступ", "success small", () => setEmployeeStatus(employee, "approved", item)));
+    }
+    item.append(top, picker, actions);
+    root.append(item);
+  });
+}
+
+async function saveEmployeeVenues(employee, card){
+  const venueSlugs = [...card.querySelectorAll(`input[name="employee-venue-${cssEscape(employee.id)}"]:checked`)].map(input => input.value);
+  if(!venueSlugs.length){toast("Выберите хотя бы одно заведение.", true);return;}
+  await employeeAction(card, "admin_update_employee", {employee_id:employee.id, venue_slugs:venueSlugs}, "Доступ к заведениям обновлён.");
+}
+
+async function setEmployeeStatus(employee, status, card){
+  if(status === "disabled" && !confirm(`Отключить доступ сотруднику «${employee.name}»?`)) return;
+  await employeeAction(card, "admin_update_employee", {employee_id:employee.id, status}, status === "approved" ? "Доступ включён." : "Доступ отключён.");
+}
+
+async function rotateEmployeeToken(employee, card){
+  if(!confirm(`Создать новый код для «${employee.name}»? Старый код перестанет работать.`)) return;
+  const controls = card.querySelectorAll("button,input");
+  setDisabled(controls, true);
+  try{
+    const data = await api("admin_rotate_employee_token", {employee_id:employee.id});
+    showTokenModal(employee, data.access_token, "Старый код уже отключён. Передайте сотруднику новый код лично.");
+  }catch(error){toast(error.message, true);}
+  finally{setDisabled(controls, false);}
+}
+
+async function employeeAction(card, action, payload, successMessage){
+  const controls = card.querySelectorAll("button,input");
+  setDisabled(controls, true);
+  try{
+    await api(action, payload);
+    toast(successMessage);
+    await loadSnapshot();
+  }catch(error){toast(error.message, true);}
+  finally{setDisabled(controls, false);}
+}
+
+function renderActive(items){
+  const root = $("activeList");
+  root.replaceChildren();
+  if(!items.length){root.append(empty("Сейчас открытых смен нет."));return;}
+
+  items.slice().sort((a,b) => new Date(a.started_at) - new Date(b.started_at)).forEach(shift => {
+    const item = div("item");
+    const top = div("item-top");
+    const info = document.createElement("div");
+    info.append(textEl("div", "name", shift.employee_name || "Сотрудник"));
+    info.append(textEl("div", "meta", `${venueName(shift.venue_slug)} · начало ${formatDateTime(shift.started_at)} · идёт ${formatDuration(Date.now() - new Date(shift.started_at).getTime())}`));
+    top.append(info, badge("На смене", "active"));
+    const actions = div("actions");
+    actions.append(button("Закрыть смену сейчас", "danger small", () => closeShift(shift, item)));
+    item.append(top, actions);
+    root.append(item);
+  });
+}
+
+async function closeShift(shift, card){
+  if(!confirm(`Закрыть смену сотрудника «${shift.employee_name}» текущим временем?`)) return;
+  const controls = card.querySelectorAll("button");
+  setDisabled(controls, true);
+  try{
+    await api("admin_close_shift", {shift_id:shift.id});
+    toast("Смена закрыта. Запись сохранена в журнале действий.");
+    await loadSnapshot();
+  }catch(error){toast(error.message, true);}
+  finally{setDisabled(controls, false);}
+}
+
+async function loadTimecard(){
+  try{
+    const data = await api("admin_timecard", {
+      date_from:$("dateFrom").value,
+      date_to:$("dateTo").value,
+      venue_slug:state.selectedVenue,
+      employee_id:$("employeeFilter").value
+    });
+    state.shifts = data.shifts || [];
+    renderTimecard(state.shifts);
+  }catch(error){
+    if(error.code === "UNAUTHORIZED") logout("Сессия закончилась. Войдите ещё раз.");
+    else toast(error.message, true);
+  }
+}
+
+function filteredShifts(){
+  const venue = state.selectedVenue;
+  const employee = $("employeeFilter").value;
+  const from = $("dateFrom").value ? new Date($("dateFrom").value + "T00:00:00") : null;
+  const to = $("dateTo").value ? new Date($("dateTo").value + "T23:59:59.999") : null;
+  return state.shifts.filter(shift => {
+    const started = new Date(shift.started_at);
+    return (!venue || shift.venue_slug === venue) && (!employee || shift.employee_id === employee) && (!from || started >= from) && (!to || started <= to);
+  });
+}
+
+function renderTimecard(items){
+  const root = $("timecardRows");
+  root.replaceChildren();
+  let totalMs = 0;
+  items.slice().sort((a,b) => new Date(b.started_at) - new Date(a.started_at)).forEach(shift => {
+    const tr = document.createElement("tr");
+    const end = shift.ended_at ? new Date(shift.ended_at) : null;
+    const duration = end ? Math.max(0, end - new Date(shift.started_at)) : 0;
+    totalMs += duration;
+    [shift.employee_name || "—", venueName(shift.venue_slug), formatDateTime(shift.started_at), end ? formatDateTime(shift.ended_at) : "Открыта", end ? formatDuration(duration) : "—"].forEach((value,index) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      if(index === 4) td.className = "hours";
+      tr.append(td);
+    });
+    root.append(tr);
+  });
+  if(!items.length){
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 5;
+    td.append(empty("За выбранный период смен нет."));
+    tr.append(td);
+    root.append(tr);
+  }
+  $("timecardTotal").textContent = `Итого: ${formatDuration(totalMs)} · смен: ${items.filter(item => item.ended_at).length}`;
+}
+
+function calculateTodayHours(venue){
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return state.shifts.reduce((sum, shift) => {
+    if(venue && shift.venue_slug !== venue) return sum;
+    const shiftStart = new Date(shift.started_at);
+    const shiftEnd = shift.ended_at ? new Date(shift.ended_at) : now;
+    const overlapStart = shiftStart < start ? start : shiftStart;
+    return sum + Math.max(0, shiftEnd - overlapStart);
+  }, 0);
+}
+
+function showTokenModal(employee, token, message){
+  $("tokenTitle").textContent = `Код для ${employee.name}`;
+  $("tokenMessage").textContent = message;
+  $("issuedToken").textContent = token;
+  $("tokenModal").classList.remove("hidden");
+}
+
+function closeTokenModal(){
+  $("issuedToken").textContent = "";
+  $("tokenModal").classList.add("hidden");
+}
+
+async function copyIssuedToken(){
+  const token = $("issuedToken").textContent;
+  try{
+    await navigator.clipboard.writeText(token);
+    toast("Код скопирован.");
+  }catch(error){
+    const range = document.createRange();
+    range.selectNodeContents($("issuedToken"));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    toast("Код выделен — скопируйте его вручную.");
+  }
+}
+
+function setLoginStatus(message, isError){
+  const box = $("loginStatus");
+  box.textContent = message;
+  box.className = "status " + (isError ? "error" : "");
+}
+
+let toastTimer;
+function toast(message, isError = false){
+  clearTimeout(toastTimer);
+  const box = $("toast");
+  box.textContent = message;
+  box.className = "toast" + (isError ? " error" : "");
+  toastTimer = setTimeout(() => box.classList.add("hidden"), 4200);
+}
+
+function option(value, label){const el=document.createElement("option");el.value=value;el.textContent=label;return el;}
+function div(className){const el=document.createElement("div");el.className=className;return el;}
+function textEl(tag,className,text){const el=document.createElement(tag);el.className=className;el.textContent=text;return el;}
+function button(label,className,onClick){const el=document.createElement("button");el.type="button";el.className=className;el.textContent=label;el.addEventListener("click",onClick);return el;}
+function badge(label,status){const el=div("badge " + status);el.textContent=label;return el;}
+function empty(message){return textEl("div","empty",message);}
+function setDisabled(elements,value){elements.forEach(element => element.disabled=value);}
+function setBusy(buttonEl,busy,label){buttonEl.disabled=busy;buttonEl.textContent=label;}
+function venueName(slug){const venue=state.venues.find(item=>item.slug===slug);return venue?.name || VENUE_NAMES[slug] || slug || "—";}
+function byName(a,b){return (a.name||"").localeCompare(b.name||"","ru");}
+function formatDateTime(value){if(!value)return "—";const date=new Date(value);return Number.isNaN(date.getTime())?value:new Intl.DateTimeFormat("ru-RU",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}).format(date);}
+function formatPhone(value){const digits=String(value||"").replace(/\D/g,"");if(digits.length===11)return `+7 ${digits.slice(1,4)} ${digits.slice(4,7)}-${digits.slice(7,9)}-${digits.slice(9)}`;return value||"Телефон не указан";}
+function formatDuration(ms){const minutes=Math.max(0,Math.round(ms/60000));return `${Math.floor(minutes/60)} ч ${String(minutes%60).padStart(2,"0")} мин`;}
+function formatHours(ms){return (ms/3600000).toLocaleString("ru-RU",{maximumFractionDigits:1});}
+function toDateInput(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;}
+function cssEscape(value){return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g,"\\$&");}
+</script>
+</body>
+</html>
+
