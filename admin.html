@@ -315,7 +315,7 @@
     </section>
 
     <section id="activePanel" class="panel card">
-      <div class="panel-head"><div><h2>Сейчас на смене</h2><div class="hint">Забытую смену можно закрыть текущим временем.</div></div></div>
+      <div class="panel-head"><div><h2>Сейчас на смене</h2><div class="hint">Забытую смену можно закрыть текущим временем или указать точное окончание.</div></div></div>
       <div id="activeList" class="list"></div>
     </section>
 
@@ -329,7 +329,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Сотрудник</th><th>Заведение</th><th>Начало</th><th>Окончание</th><th>Часы</th></tr></thead>
+          <thead><tr><th>Сотрудник</th><th>Заведение</th><th>Начало</th><th>Окончание</th><th>Часы</th><th></th></tr></thead>
           <tbody id="timecardRows"></tbody>
         </table>
       </div>
@@ -350,6 +350,26 @@
   </div>
 </div>
 
+<div id="shiftModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shiftEditorTitle">
+  <div class="modal-card">
+    <h2 id="shiftEditorTitle">Изменить время смены</h2>
+    <p id="shiftEditorMeta" class="hint"></p>
+    <div style="margin-top:16px">
+      <label for="shiftStartedAt">Начало смены</label>
+      <input id="shiftStartedAt" type="datetime-local">
+    </div>
+    <div style="margin-top:14px">
+      <label for="shiftEndedAt">Окончание смены</label>
+      <input id="shiftEndedAt" type="datetime-local">
+    </div>
+    <p class="hint">Для открытой смены укажите фактическое время окончания. Все изменения сохраняются в журнале.</p>
+    <div class="modal-actions">
+      <button id="cancelShiftEdit" class="secondary">Отмена</button>
+      <button id="saveShiftEdit">Сохранить время</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden" role="status"></div>
 
 <script>
@@ -364,7 +384,8 @@ const state = {
   employees: [],
   activeShifts: [],
   shifts: [],
-  selectedVenue: ""
+  selectedVenue: "",
+  editingShift: null
 };
 
 const $ = id => document.getElementById(id);
@@ -389,6 +410,9 @@ function init(){
   $("copyToken").addEventListener("click", copyIssuedToken);
   $("closeToken").addEventListener("click", closeTokenModal);
   $("tokenModal").addEventListener("click", event => { if(event.target === $("tokenModal")) closeTokenModal(); });
+  $("cancelShiftEdit").addEventListener("click", closeShiftEditor);
+  $("saveShiftEdit").addEventListener("click", saveShiftTime);
+  $("shiftModal").addEventListener("click", event => { if(event.target === $("shiftModal")) closeShiftEditor(); });
   document.querySelectorAll(".tab").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
 
   if(state.token) loadSnapshot();
@@ -667,6 +691,7 @@ function renderActive(items){
     info.append(textEl("div", "meta", `${venueName(shift.venue_slug)} · начало ${formatDateTime(shift.started_at)} · идёт ${formatDuration(Date.now() - new Date(shift.started_at).getTime())}`));
     top.append(info, badge("На смене", "active"));
     const actions = div("actions");
+    actions.append(button("Изменить время", "secondary small", () => openShiftEditor(shift)));
     actions.append(button("Закрыть смену сейчас", "danger small", () => closeShift(shift, item)));
     item.append(top, actions);
     root.append(item);
@@ -727,17 +752,56 @@ function renderTimecard(items){
       if(index === 4) td.className = "hours";
       tr.append(td);
     });
+    const actionCell = document.createElement("td");
+    actionCell.append(button("Изменить", "secondary small", () => openShiftEditor(shift)));
+    tr.append(actionCell);
     root.append(tr);
   });
   if(!items.length){
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 5;
+    td.colSpan = 6;
     td.append(empty("За выбранный период смен нет."));
     tr.append(td);
     root.append(tr);
   }
   $("timecardTotal").textContent = `Итого: ${formatDuration(totalMs)} · смен: ${items.filter(item => item.ended_at).length}`;
+}
+
+function openShiftEditor(shift){
+  state.editingShift = shift;
+  $("shiftEditorTitle").textContent = `Время смены — ${shift.employee_name || "сотрудник"}`;
+  $("shiftEditorMeta").textContent = venueName(shift.venue_slug);
+  $("shiftStartedAt").value = toDateTimeInput(new Date(shift.started_at));
+  $("shiftEndedAt").value = shift.ended_at ? toDateTimeInput(new Date(shift.ended_at)) : toDateTimeInput(new Date());
+  $("shiftModal").classList.remove("hidden");
+}
+
+function closeShiftEditor(){
+  state.editingShift = null;
+  $("shiftModal").classList.add("hidden");
+}
+
+async function saveShiftTime(){
+  const shift = state.editingShift;
+  if(!shift) return;
+  const startedValue = $("shiftStartedAt").value;
+  const endedValue = $("shiftEndedAt").value;
+  if(!startedValue || !endedValue){toast("Укажите начало и окончание смены.", true);return;}
+  const started = new Date(startedValue);
+  const ended = new Date(endedValue);
+  if(Number.isNaN(started.getTime()) || Number.isNaN(ended.getTime())){toast("Проверьте дату и время.", true);return;}
+  if(ended < started){toast("Окончание не может быть раньше начала.", true);return;}
+
+  setBusy($("saveShiftEdit"), true, "Сохраняем...");
+  try{
+    await api("admin_update_shift", {shift_id:shift.id, started_at:started.toISOString(), ended_at:ended.toISOString()});
+    closeShiftEditor();
+    toast("Время смены обновлено. Часы пересчитаны.");
+    await loadSnapshot();
+    if($("timecardPanel").classList.contains("active")) await loadTimecard();
+  }catch(error){toast(error.message, true);}
+  finally{setBusy($("saveShiftEdit"), false, "Сохранить время");}
 }
 
 function calculateTodayHours(venue){
@@ -809,6 +873,7 @@ function formatPhone(value){const digits=String(value||"").replace(/\D/g,"");if(
 function formatDuration(ms){const minutes=Math.max(0,Math.round(ms/60000));return `${Math.floor(minutes/60)} ч ${String(minutes%60).padStart(2,"0")} мин`;}
 function formatHours(ms){return (ms/3600000).toLocaleString("ru-RU",{maximumFractionDigits:1});}
 function toDateInput(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;}
+function toDateTimeInput(date){return `${toDateInput(date)}T${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}`;}
 function cssEscape(value){return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g,"\\$&");}
 </script>
 </body>
