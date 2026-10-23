@@ -258,6 +258,7 @@
     .metrics{gap:8px}
     .metric .number{font-size:25px}
   }
+.schedule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.schedule-day{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}.schedule-day h3{margin:0 0 5px;font-size:16px}.coverage{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.coverage span{padding:5px 8px;border-radius:999px;background:#e9f5ec;color:#14652b;font-size:11px;font-weight:700}.coverage span.missing{background:#fae7e7;color:#9b2020}.wish-person{padding:9px 0;border-top:1px solid var(--line)}.wish-person strong{display:block}.wish-person small{color:var(--muted);line-height:1.45}
 </style>
 </head>
 <body>
@@ -315,7 +316,7 @@
     </section>
 
     <section id="schedulePanel" class="panel card">
-      <div class="panel-head"><div><h2>Пожелания по графику</h2><div class="hint">Удобные и нежелательные периоды, которые отметили сотрудники.</div></div></div>
+      <div class="panel-head"><div><h2>Пожелания по графику</h2><div class="hint">Следующая неделя: варианты сотрудников и возможное покрытие открытия, закрытия и средней смены.</div></div></div>
       <div id="scheduleList" class="list"></div>
     </section>
 
@@ -540,7 +541,7 @@ function renderAll(){
 
   renderRequests(pending);
   renderActive(active);
-  renderSchedule(state.scheduleRequests);
+  renderSchedule(state.scheduleRequests.filter(item => !venue || !item.venue_slug || item.venue_slug === venue));
   renderTimecard(filteredShifts());
 }
 
@@ -548,13 +549,9 @@ function renderSchedule(items){
   const root = $("scheduleList");
   root.replaceChildren();
   if(!items.length){ root.append(empty("Пожеланий пока нет.")); return; }
-  items.forEach(item => {
-    const card = document.createElement("article");
-    card.className = "item";
-    const range = item.date_from === item.date_to ? item.date_from : item.date_from + " — " + item.date_to;
-    card.innerHTML = `<div class="item-main"><div class="item-title">${escapeHtml(item.employee_name)}</div><div class="meta">${escapeHtml(range)} · ${item.preference === "prefer" ? "Хочет работать" : "Лучше не ставить"}</div>${item.note ? `<div class="status">${escapeHtml(item.note)}</div>` : ""}</div>`;
-    root.append(card);
-  });
+  const weekly=items.filter(item=>item.week_start&&item.shift_codes?.length),legacy=items.filter(item=>!item.week_start||!item.shift_codes?.length),labels={full_weekday:"Фулл будни",long_morning:"Ув. утренняя",long_evening:"Ув. вечер",weekend_full:"Ув. выходной",medium:"Средняя",half_morning:"Половинка утро",half_evening:"Половинка вечер"};
+  if(weekly.length){const grid=document.createElement("div");grid.className="schedule-grid";const byDate=weekly.reduce((all,item)=>((all[item.date_from]||=[]).push(item),all),{});Object.keys(byDate).sort().forEach(date=>{const people=byDate[date],uniqueFor=codes=>new Set(people.filter(item=>item.shift_codes.some(code=>codes.includes(code))).map(item=>item.employee_id)).size,open=uniqueFor(["full_weekday","weekend_full","long_morning","half_morning"]),close=uniqueFor(["full_weekday","weekend_full","long_evening","half_evening"]),middle=uniqueFor(["medium"]),card=document.createElement("article");card.className="schedule-day";card.innerHTML='<h3>'+escapeHtml(new Intl.DateTimeFormat("ru-RU",{weekday:"long",day:"numeric",month:"short"}).format(new Date(date+"T12:00:00")))+'</h3><div class="meta">'+escapeHtml(venueName(people[0].venue_slug))+'</div><div class="coverage"><span class="'+(open<2?"missing":"")+'">Открытие '+open+'/2</span><span class="'+(close<2?"missing":"")+'">Закрытие '+close+'/2</span><span class="'+(middle<1?"missing":"")+'">Средняя '+middle+'/1</span></div>';people.sort((a,b)=>a.employee_name.localeCompare(b.employee_name,"ru")).forEach(item=>{const row=document.createElement("div");row.className="wish-person";row.innerHTML='<strong>'+escapeHtml(item.employee_name)+'</strong><small>'+item.shift_codes.map(code=>escapeHtml(labels[code]||code)).join(" · ")+'</small>';card.append(row)});grid.append(card)});root.append(grid)}
+  legacy.forEach(item=>{const card=document.createElement("article");card.className="item";const range=item.date_from===item.date_to?item.date_from:item.date_from+" — "+item.date_to;card.innerHTML='<div class="item-main"><div class="item-title">'+escapeHtml(item.employee_name)+'</div><div class="meta">'+escapeHtml(range)+' · '+(item.preference==="prefer"?"Хочет работать":"Лучше не ставить")+'</div>'+(item.note?'<div class="status">'+escapeHtml(item.note)+'</div>':"")+'</div>';root.append(card)});
 }
 
 function renderRequests(items){
