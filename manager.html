@@ -300,6 +300,7 @@
     <nav class="tabs" aria-label="Разделы админки">
       <button class="tab active" data-panel="requestsPanel">Заявки</button>
       <button class="tab" data-panel="activePanel">Активные смены</button>
+      <button class="tab" data-panel="schedulePanel">Пожелания</button>
       <button class="tab" data-panel="timecardPanel">Табель</button>
     </nav>
 
@@ -311,6 +312,11 @@
     <section id="activePanel" class="panel card">
       <div class="panel-head"><div><h2>Сейчас на смене</h2><div class="hint">Забытую смену можно закрыть текущим временем или указать точное окончание.</div></div></div>
       <div id="activeList" class="list"></div>
+    </section>
+
+    <section id="schedulePanel" class="panel card">
+      <div class="panel-head"><div><h2>Пожелания по графику</h2><div class="hint">Удобные и нежелательные периоды, которые отметили сотрудники.</div></div></div>
+      <div id="scheduleList" class="list"></div>
     </section>
 
     <section id="timecardPanel" class="panel card">
@@ -378,6 +384,7 @@ const state = {
   employees: [],
   activeShifts: [],
   shifts: [],
+  scheduleRequests: [],
   selectedVenue: "",
   editingShift: null
 };
@@ -473,6 +480,7 @@ async function loadSnapshot(){
     state.employees = data.employees || [];
     state.activeShifts = data.active_shifts || [];
     state.shifts = data.shifts || [];
+    state.scheduleRequests = data.schedule_requests || [];
     showApp();
     populateFilters();
     renderAll();
@@ -532,7 +540,21 @@ function renderAll(){
 
   renderRequests(pending);
   renderActive(active);
+  renderSchedule(state.scheduleRequests);
   renderTimecard(filteredShifts());
+}
+
+function renderSchedule(items){
+  const root = $("scheduleList");
+  root.replaceChildren();
+  if(!items.length){ root.append(empty("Пожеланий пока нет.")); return; }
+  items.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "item";
+    const range = item.date_from === item.date_to ? item.date_from : item.date_from + " — " + item.date_to;
+    card.innerHTML = `<div class="item-main"><div class="item-title">${escapeHtml(item.employee_name)}</div><div class="meta">${escapeHtml(range)} · ${item.preference === "prefer" ? "Хочет работать" : "Лучше не ставить"}</div>${item.note ? `<div class="status">${escapeHtml(item.note)}</div>` : ""}</div>`;
+    root.append(card);
+  });
 }
 
 function renderRequests(items){
