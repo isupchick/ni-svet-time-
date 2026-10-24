@@ -701,7 +701,7 @@ function renderActive(items){
     const info = document.createElement("div");
     info.append(textEl("div", "name", shift.employee_name || "Сотрудник"));
     info.append(textEl("div", "meta", `${venueName(shift.venue_slug)} · начало ${formatDateTime(shift.started_at)} · идёт ${formatDuration(Date.now() - new Date(shift.started_at).getTime())}`));
-    top.append(withAvatar(info, shift.avatar_id), badge("На смене", "active"));
+    top.append(withAvatar(info, state.employees.find(employee => employee.id === shift.employee_id)?.avatar_id), badge("На смене", "active"));
     const actions = div("actions");
     actions.append(button("Изменить время", "secondary small", () => openShiftEditor(shift)));
     actions.append(button("Закрыть смену сейчас", "danger small", () => closeShift(shift, item)));
