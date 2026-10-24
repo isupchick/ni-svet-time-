@@ -258,7 +258,7 @@
     .metrics{gap:8px}
     .metric .number{font-size:25px}
   }
-.schedule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.schedule-day{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}.schedule-day h3{margin:0 0 5px;font-size:16px}.coverage{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.coverage span{padding:5px 8px;border-radius:999px;background:#e9f5ec;color:#14652b;font-size:11px;font-weight:700}.coverage span.missing{background:#fae7e7;color:#9b2020}.wish-person{padding:9px 0;border-top:1px solid var(--line)}.wish-person strong{display:block}.wish-person small{color:var(--muted);line-height:1.45}
+.employee-avatar{width:48px;height:48px;border-radius:50%;flex:0 0 auto;background-image:url('assets/animal-avatars-50.jpg');background-size:1000% 500%;background-color:#eee4d2;box-shadow:0 3px 10px rgba(0,0,0,.1)}.person-with-avatar{display:flex;align-items:center;gap:12px;min-width:0}.person-with-avatar>div:last-child{min-width:0}.schedule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.schedule-day{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}.schedule-day h3{margin:0 0 5px;font-size:16px}.coverage{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.coverage span{padding:5px 8px;border-radius:999px;background:#e9f5ec;color:#14652b;font-size:11px;font-weight:700}.coverage span.missing{background:#fae7e7;color:#9b2020}.wish-person{padding:9px 0;border-top:1px solid var(--line);display:flex;align-items:center;gap:9px}.wish-person .employee-avatar{width:34px;height:34px}.wish-copy{min-width:0}.wish-person strong{display:block}.wish-person small{color:var(--muted);line-height:1.45}
 </style>
 </head>
 <body>
@@ -575,7 +575,7 @@ function renderRequests(items){
     const info = document.createElement("div");
     info.append(textEl("div", "name", request.name));
     info.append(textEl("div", "meta", `${request.position || "Без должности"} · ${formatPhone(request.phone)} · ${formatDateTime(request.created_at)}`));
-    top.append(info, badge(venueName(request.venue_slug), "pending"));
+    top.append(withAvatar(info, request.avatar_id), badge(venueName(request.venue_slug), "pending"));
 
     const picker = div("venue-picker");
     state.venues.forEach(venue => {
@@ -636,7 +636,7 @@ function renderEmployees(items){
     const info = document.createElement("div");
     info.append(textEl("div", "name", employee.name));
     info.append(textEl("div", "meta", `${employee.position || "Без должности"} · ${formatPhone(employee.phone)}\n${(employee.venue_slugs || []).map(venueName).join(", ") || "Нет заведений"}`));
-    top.append(info, badge(employee.status === "approved" ? "Доступ включён" : "Доступ отключён", employee.status));
+    top.append(withAvatar(info, employee.avatar_id), badge(employee.status === "approved" ? "Доступ включён" : "Доступ отключён", employee.status));
 
     const picker = div("venue-picker");
     state.venues.forEach(venue => {
@@ -708,7 +708,7 @@ function renderActive(items){
     const info = document.createElement("div");
     info.append(textEl("div", "name", shift.employee_name || "Сотрудник"));
     info.append(textEl("div", "meta", `${venueName(shift.venue_slug)} · начало ${formatDateTime(shift.started_at)} · идёт ${formatDuration(Date.now() - new Date(shift.started_at).getTime())}`));
-    top.append(info, badge("На смене", "active"));
+    top.append(withAvatar(info, shift.avatar_id), badge("На смене", "active"));
     const actions = div("actions");
     actions.append(button("Изменить время", "secondary small", () => openShiftEditor(shift)));
     actions.append(button("Закрыть смену сейчас", "danger small", () => closeShift(shift, item)));
@@ -877,6 +877,8 @@ function toast(message, isError = false){
   toastTimer = setTimeout(() => box.classList.add("hidden"), 4200);
 }
 
+function avatarElement(id){const el=div("employee-avatar");const index=Math.max(0,Number(id||1)-1),col=index%10,row=Math.floor(index/10);el.style.backgroundPosition=(col/9*100)+"% "+(row/4*100)+"%";el.setAttribute("aria-label","Аватар сотрудника");return el;}
+function withAvatar(info,id){const wrap=div("person-with-avatar");wrap.append(avatarElement(id),info);return wrap;}
 function option(value, label){const el=document.createElement("option");el.value=value;el.textContent=label;return el;}
 function div(className){const el=document.createElement("div");el.className=className;return el;}
 function textEl(tag,className,text){const el=document.createElement(tag);el.className=className;el.textContent=text;return el;}
